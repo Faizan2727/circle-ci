@@ -1,40 +1,33 @@
 version: 2.1
 
+orbs:
+  gcp-cli: circleci/gcp-cli@3.1.1
+
 jobs:
   deploy:
     docker:
-      - image: cimg/gcp:2023.12.1
-
+      - image: cimg/base:stable
     steps:
       - checkout
-      
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          name: Authenticate to GCP
-          command: |
-            echo "$GCLOUD_SERVICE_KEY" | base64 -d > gcloud-key.json
-            gcloud auth activate-service-account --key-file=gcloud-key.json
-            gcloud config set project $GCP_PROJECT_ID
-            gcloud auth configure-docker $GCP_REGION-docker.pkg.dev
+
+      - gcp-cli/setup:
+          service-account-key: GCLOUD_SERVICE_KEY
+          project-id: GCP_PROJECT_ID
+          region: GCP_REGION
 
       - run:
-          name: Build and Push Docker Image
           command: |
             docker build -t $IMAGE_URI .
             docker push $IMAGE_URI
 
-      - run:
-          name: Deploy to Cloud Run
-          command: |
-            gcloud run deploy nginx-poc \
-              --image $IMAGE_URI \
-              --region $GCP_REGION \
-              --platform managed \
-              --port 80 \
-              --allow-unauthenticated
-              
+      - gcp-cli/run/deploy:
+          service-name: nginx-poc
+          image: $IMAGE_URI
+          region: GCP_REGION
+          port: 80
+          allow-unauthenticated: true
+
 workflows:
-  deploy-workflow:
+  deploy:
     jobs:
       - deploy
