@@ -31,7 +31,7 @@ jobs:
               --image $IMAGE_URI \
               --region $GCP_REGION \
               --platform managed \
-              --port-no 80 \
+              --port 80 \
               --allow-unauthenticated
               
 workflows:
